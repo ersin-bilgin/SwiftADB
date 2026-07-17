@@ -30,6 +30,8 @@ struct SwiftADBDemo {
                 try await runPush(args: args, client: client)
             case "pull":
                 try await runPull(args: args, client: client)
+            case "stat":
+                try await runStat(args: args, client: client)
             case "logcat":
                 try await runLogcat(args: args, client: client)
             case "forward":
@@ -65,6 +67,7 @@ struct SwiftADBDemo {
           swift run SwiftADBDemo shell <host> [port] <komut>
           swift run SwiftADBDemo push <host> <local> <remote> [port]
           swift run SwiftADBDemo pull <host> <remote> <local> [port]
+          swift run SwiftADBDemo stat <host> <remotePath> [port]
           swift run SwiftADBDemo logcat <host> [port]
           swift run SwiftADBDemo forward <host> <localPort> <remotePort> [port]
 
@@ -348,6 +351,24 @@ struct SwiftADBDemo {
             print("\rAktarım: %\(percent)", terminator: "")
         }
         print("\nPull tamamlandı.")
+    }
+
+    static func runStat(args: [String], client: ADBClient) async throws {
+        guard args.count >= 3 else {
+            print("Kullanım: stat <host> <remotePath> [port]")
+            return
+        }
+        let host = args[1]
+        let remote = args[2]
+        let port = args.count >= 4 ? (UInt16(args[3]) ?? 5555) : 5555
+
+        ADBLog.logger = ConsoleADBLogger(minimumLevel: .debug)
+        try await client.connect(host: host, port: port)
+        defer { Task { await client.disconnect() } }
+
+        let sync = DefaultFileSyncService(client: client)
+        let info = try await sync.stat(remotePath: remote)
+        print("mode=\(info.mode) size=\(info.size) mtime=\(info.mtime)")
     }
 
     static func runLogcat(args: [String], client: ADBClient) async throws {
