@@ -16,7 +16,9 @@ public enum ADBProtocol {
     public static let version: UInt32 = 0x0100_0000
     public static let maxDataSize: UInt32 = 256 * 1024
     public static let tokenSize = 20
-    public static let defaultBanner = "host::features=shell_v2"
+    public static let defaultBanner =
+        "host::features=shell_v2,cmd,stat_v2,ls_v2,sendrecv_v2,sendrecv_v2_brotli," +
+        "fixed_push_mkdir,fixed_push_symlink_timestamp,apex,remount_shell,abb,abb_exec"
 }
 
 /// ADB mesaj başlığı (24 bayt).

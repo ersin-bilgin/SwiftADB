@@ -277,17 +277,25 @@ public actor ADBSession {
         switch message.command {
         case .okay:
             let localID = message.header.arg1
+            ADBLog.debug(
+                "OKAY local=\(localID) remote=\(message.header.arg0) openWaiters=\(openWaiters.count) writeWaiters=\(writeWaiters.count)",
+                category: "Session"
+            )
             if let waiter = openWaiters.removeValue(forKey: localID) {
                 waiter.resume(returning: message.header.arg0)
                 return
             }
-            let key = writeKey(localID: message.header.arg0, remoteID: message.header.arg1)
+            let key = writeKey(localID: message.header.arg1, remoteID: message.header.arg0)
             if let waiter = writeWaiters.removeValue(forKey: key) {
                 waiter.resume()
             }
 
         case .wrte:
             let localID = message.header.arg1
+            ADBLog.debug(
+                "WRTE local=\(localID) remote=\(message.header.arg0) payload=\(message.payload.count)",
+                category: "Session"
+            )
             if let stream = streams[localID] {
                 await stream.append(message.payload)
                 try? await transport.transport.send(

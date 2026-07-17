@@ -67,7 +67,7 @@ enum DeviceTestRunner {
 
         await append(await measure("FileSync — stat") {
             let sync = DefaultFileSyncService(client: client)
-            let info = try await sync.stat(remotePath: "/sdcard")
+            let info = try await sync.stat(remotePath: "/storage/emulated/0")
             return "mode=\(info.mode) size=\(info.size)"
         })
 

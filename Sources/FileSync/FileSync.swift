@@ -92,18 +92,9 @@ public final class DefaultFileSyncService: ADBFileSyncService, @unchecked Sendab
             let mtime = response.payload.readUInt32LE(at: 8)
             return RemoteFileStat(mode: mode, size: size, mtime: mtime)
 
-        case .lstatV2:
-            guard response.payload.count >= 68 else {
-                throw FileSyncError.remotePathInvalid(path)
-            }
-            let errorCode = response.payload.readUInt32LE(at: 0)
-            guard errorCode == 0 else {
-                throw FileSyncError.remotePathInvalid(path)
-            }
-            let mode = response.payload.readUInt32LE(at: 20)
-            let size = response.payload.readUInt64LE(at: 36)
-            let mtime = UInt32(clamping: Int(response.payload.readInt64LE(at: 52)))
-            return RemoteFileStat(mode: mode, size: size, mtime: mtime)
+        case .lstatV2, .statV2:
+            let fields = try SYNCProtocol.decodeStatV2Record(response.payload, path: path)
+            return RemoteFileStat(mode: fields.mode, size: fields.size, mtime: fields.mtime)
 
         case .fail:
             throw FileSyncError.remotePathInvalid(
@@ -119,7 +110,7 @@ public final class DefaultFileSyncService: ADBFileSyncService, @unchecked Sendab
         if remotePath != "/sdcard" {
             return [remotePath]
         }
-        return ["/sdcard", "/storage/emulated/0"]
+        return ["/storage/emulated/0", "/sdcard"]
     }
 
     public func push(
@@ -223,7 +214,7 @@ public final class DefaultFileSyncService: ADBFileSyncService, @unchecked Sendab
             if let chunk = await stream.read(), !chunk.isEmpty {
                 buffer.append(chunk)
             }
-            if let (command, _, payload, consumed) = SYNCProtocol.parseCommand(from: buffer) {
+            if let (command, payload, consumed) = SYNCProtocol.parseResponse(from: buffer) {
                 buffer.removeFirst(consumed)
                 return (command, payload)
             }
