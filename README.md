@@ -1,32 +1,32 @@
 # SwiftADB
 
-Pure Swift ADB (Android Debug Bridge) kütüphanesi. TCP, TLS, USB ve kablosuz ADB protokollerini destekler.
+A pure Swift implementation of ADB (Android Debug Bridge). Supports TCP, TLS, USB, and Wireless ADB protocols.
 
-## Özellikler
+## Features
 
-- **Transport** — `NWConnection` TCP/TLS, ADB mesaj serileştirme
-- **Authentication** — RSA-2048 anahtar, Android pubkey formatı, AUTH döngüsü
-- **Client** — CNXN/STLS el sıkışması, servis yönetimi (OPEN/OKAY/WRTE/CLSE)
-- **DeviceDiscovery** — Bonjour `_adb._tcp` keşfi
-- **Pairing** — Kablosuz eşleştirme (sistem `adb pair` + native fallback)
-- **Shell** — Shell v1/v2 (stdout, stderr, exit code)
-- **FileSync** — push/pull, STAT
-- **PortForward** — local ve reverse port yönlendirme
-- **Logcat** — Log akışı ve parse
-- **USB** — macOS `usbmuxd` desteği
-- **SwiftADBiOSKit** — SwiftUI örnek arayüz
+- **Transport** — `NWConnection`-based TCP/TLS transport and ADB message serialization
+- **Authentication** — RSA-2048 key generation, Android public key format, AUTH handshake
+- **Client** — CNXN/STLS handshake, service management (OPEN/OKAY/WRTE/CLSE)
+- **Device Discovery** — Bonjour `_adb._tcp` service discovery
+- **Pairing** — Wireless pairing (`adb pair` integration with native fallback)
+- **Shell** — Shell v1/v2 support (stdout, stderr, exit code)
+- **FileSync** — File push/pull and STAT operations
+- **Port Forwarding** — Local and reverse port forwarding
+- **Logcat** — Real-time log streaming and parsing
+- **USB** — macOS `usbmuxd` support
+- **SwiftADBiOSKit** — Sample SwiftUI interface
 
-## Gereksinimler
+## Requirements
 
 - Swift 6.0+
 - macOS 13+ / iOS 16+
-- Kablosuz eşleştirme için Android SDK `platform-tools` (opsiyonel)
+- Android SDK Platform Tools (optional, required only for wireless pairing)
 
-## Kurulum
+## Installation
 
 ```swift
 dependencies: [
-    .package(path: "../SwiftAdb")
+    .package(path: "../SwiftADB")
 ]
 ```
 
@@ -34,7 +34,7 @@ dependencies: [
 import SwiftADB
 ```
 
-## Hızlı Başlangıç
+## Quick Start
 
 ```swift
 let client = ADBClient()
@@ -65,28 +65,35 @@ swift run SwiftADBDemo logcat 192.168.1.42 5555
 swift run SwiftADBMacApp
 ```
 
-## Cihaz Test Uygulaması
+## Device Test Application
 
-Gerçek cihaza karşı smoke testleri (bağlantı, shell, filesync):
+Smoke tests against a real Android device (connection, shell, FileSync):
 
 ```bash
 open Examples/SwiftADBTestApp/SwiftADBTestApp.xcodeproj
 ```
 
-veya `swift run SwiftADBTestApp`
+or
 
-Varsayılan hedef: `192.168.1.8:5555` — ayrıntılar için `Examples/SwiftADBTestApp/README.md`.
+```bash
+swift run SwiftADBTestApp
+```
 
-## iOS Entegrasyonu
+Default target device: `192.168.1.8:5555`.
 
-1. Xcode'da iOS App projesi oluşturun
-2. SwiftADB paketini ekleyin
-3. `SwiftADBiOSKit` import edin
-4. `Info.plist` ekleyin:
+See `Examples/SwiftADBTestApp/README.md` for configuration details.
+
+## iOS Integration
+
+1. Create an iOS app project in Xcode.
+2. Add the SwiftADB package.
+3. Import `SwiftADBiOSKit`.
+4. Add the following entries to your `Info.plist`:
 
 ```xml
 <key>NSLocalNetworkUsageDescription</key>
-<string>ADB cihazlarını keşfetmek için yerel ağ erişimi gerekir.</string>
+<string>Local network access is required to discover ADB devices.</string>
+
 <key>NSBonjourServices</key>
 <array>
     <string>_adb._tcp</string>
@@ -100,39 +107,40 @@ import SwiftADBiOSKit
 @main
 struct MyApp: App {
     var body: some Scene {
-        WindowGroup { ADBMainView() }
+        WindowGroup {
+            ADBMainView()
+        }
     }
 }
 ```
 
-## USB Bağlantı (macOS)
+## USB Connection (macOS)
 
 ```swift
 let usbDevices = try UsbMuxClient.shared.listDevices()
 try await client.connectUSB(deviceID: usbDevices[0].id)
 ```
 
-## Modüller
+## Modules
 
-| Modül | Açıklama |
-|-------|----------|
-| `SwiftADB` | Umbrella (tüm modüller) |
-| `SwiftADBTransport` | TCP, USB, mock transport |
-| `SwiftADBAuthentication` | RSA kimlik doğrulama |
-| `SwiftADBClient` | Ana istemci |
-| `SwiftADBShell` | Shell servisi |
-| `SwiftADBFileSync` | Dosya aktarımı |
-| `SwiftADBPortForward` | Port yönlendirme |
-| `SwiftADBLogcat` | Logcat |
-| `SwiftADBiOSKit` | SwiftUI bileşenleri |
+| Module | Description |
+|---------|-------------|
+| `SwiftADB` | Umbrella package (includes all modules) |
+| `SwiftADBTransport` | TCP, USB, and mock transport |
+| `SwiftADBAuthentication` | RSA authentication |
+| `SwiftADBClient` | Core ADB client |
+| `SwiftADBShell` | Shell service |
+| `SwiftADBFileSync` | File transfer |
+| `SwiftADBPortForward` | Port forwarding |
+| `SwiftADBLogcat` | Logcat streaming |
+| `SwiftADBiOSKit` | SwiftUI components |
 
-## Test
+## Testing
 
 ```bash
 swift test
 ```
 
-## Lisans
+## License
 
-Apache 2.0
-# SwiftADB
+Apache License 2.0
