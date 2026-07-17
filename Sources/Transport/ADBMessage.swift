@@ -1,6 +1,6 @@
 import Foundation
 
-/// ADB protokol mesaj komutları (little-endian fourcc).
+/// ADB protocol message commands (little-endian fourcc).
 public enum ADBCommand: UInt32, Sendable {
     case sync = 0x434e5953 // SYNC
     case cnxn = 0x4e584e43 // CNXN
@@ -21,7 +21,7 @@ public enum ADBProtocol {
         "fixed_push_mkdir,fixed_push_symlink_timestamp,apex,remount_shell,abb,abb_exec"
 }
 
-/// ADB mesaj başlığı (24 bayt).
+/// ADB message header (24 bytes).
 public struct ADBMessageHeader: Sendable, Equatable {
     public let command: ADBCommand
     public let arg0: UInt32
@@ -49,7 +49,7 @@ public struct ADBMessageHeader: Sendable, Equatable {
     public static let size = 24
 }
 
-/// Tam ADB mesajı (başlık + payload).
+/// Complete ADB message (header + payload).
 public struct ADBMessage: Sendable {
     public let header: ADBMessageHeader
     public let payload: Data
@@ -62,7 +62,7 @@ public struct ADBMessage: Sendable {
     public var command: ADBCommand { header.command }
 }
 
-/// Taşıma katmanı hataları.
+/// Transport layer errors.
 public enum TransportError: Error, Sendable, Equatable {
     case notConnected
     case connectionClosed

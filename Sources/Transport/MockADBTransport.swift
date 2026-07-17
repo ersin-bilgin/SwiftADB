@@ -1,6 +1,6 @@
 import Foundation
 
-/// Test ve simülasyon için sahte ADB cihazı transport'u.
+/// Mock ADB device transport for tests and simulation.
 public final class MockADBTransport: ADBTransport, @unchecked Sendable {
     public let host: String
     public let port: UInt16

@@ -7,7 +7,7 @@ enum ADBMessageCodec {
 
     static func encode(header: ADBMessageHeader, payload: Data?) -> Data {
         let body = payload ?? Data()
-        // platform-tools / iRemoteController ile uyumlu — modern ADB checksum kullanmaz.
+        // Compatible with platform-tools / iRemoteController — modern ADB does not use checksums.
         let resolvedHeader = ADBMessageHeader(
             command: header.command,
             arg0: header.arg0,

@@ -45,33 +45,33 @@ struct SwiftADBDemo {
             case "keys-compare":
                 try runKeysCompare()
             default:
-                print("Bilinmeyen komut: \(command)")
+                print("Unknown command: \(command)")
                 printUsage()
             }
         } catch {
-            fputs("Hata: \(error)\n", stderr)
+            fputs("Error: \(error)\n", stderr)
             exit(1)
         }
     }
 
     static func printUsage() {
         print("""
-        SwiftADBDemo — SwiftADB test aracı
+        SwiftADBDemo — SwiftADB test tool
 
-        Kullanım:
+        Usage:
           swift run SwiftADBDemo discover
           swift run SwiftADBDemo usb [connect <deviceID>]
-          swift run SwiftADBDemo pair <host> <port> <kod>
+          swift run SwiftADBDemo pair <host> <port> <code>
           swift run SwiftADBDemo connect <host> [port]
           swift run SwiftADBDemo devices <host> [port]
-          swift run SwiftADBDemo shell <host> [port] <komut>
+          swift run SwiftADBDemo shell <host> [port] <command>
           swift run SwiftADBDemo push <host> <local> <remote> [port]
           swift run SwiftADBDemo pull <host> <remote> <local> [port]
           swift run SwiftADBDemo stat <host> <remotePath> [port]
           swift run SwiftADBDemo logcat <host> [port]
           swift run SwiftADBDemo forward <host> <localPort> <remotePort> [port]
 
-        Örnek:
+        Example:
           swift run SwiftADBDemo connect 192.168.1.42 5555
           swift run SwiftADBDemo keys
           swift run SwiftADBDemo shell 192.168.1.42 5555 "getprop ro.product.model"
@@ -82,7 +82,7 @@ struct SwiftADBDemo {
         if args.count >= 3, args[1] == "connect", let deviceID = Int(args[2]) {
             try await client.connectUSB(deviceID: deviceID)
             if let device = client.device {
-                print("USB bağlandı: \(device.serial)")
+                print("USB connected: \(device.serial)")
             }
             await client.disconnect()
             return
@@ -91,19 +91,19 @@ struct SwiftADBDemo {
         #if os(macOS)
         let devices = try UsbMuxClient.shared.listDevices()
         if devices.isEmpty {
-            print("USB cihaz bulunamadı.")
+            print("No USB devices found.")
         } else {
             for device in devices {
                 print("• id=\(device.id) serial=\(device.serial) pid=\(device.productID)")
             }
         }
         #else
-        print("USB listeleme yalnızca macOS'ta desteklenir.")
+        print("USB listing is only supported on macOS.")
         #endif
     }
 
     static func runDiscover() async throws {
-        print("ADB cihazları aranıyor (_adb._tcp)...")
+        print("Searching for ADB devices (_adb._tcp)...")
         let discoverer = BonjourDeviceDiscoverer()
         let stream = try await discoverer.startBrowsing()
 
@@ -121,23 +121,23 @@ struct SwiftADBDemo {
 
     static func runPair(args: [String], client: ADBClient) async throws {
         guard args.count >= 4 else {
-            print("Kullanım: pair <host> <port> <kod>")
+            print("Usage: pair <host> <port> <code>")
             return
         }
         let host = args[1]
         guard let port = UInt16(args[2]) else { throw DemoError.invalidPort }
         let code = args[3]
-        print("Eşleştiriliyor: \(host):\(port)...")
+        print("Pairing: \(host):\(port)...")
         try await client.pair(host: host, port: port, code: code)
-        print("Eşleştirme başarılı.")
+        print("Pairing succeeded.")
     }
 
     static func runConnect(args: [String], client: ADBClient) async throws {
         let (host, port) = try parseHostPort(args: args, commandIndex: 1)
-        print("Bağlanılıyor: \(host):\(port)...")
+        print("Connecting: \(host):\(port)...")
         try await client.connect(host: host, port: port)
         if let device = client.device {
-            print("Bağlandı: \(device.serial) \(device.model ?? "")")
+            print("Connected: \(device.serial) \(device.model ?? "")")
             if let banner = device.banner {
                 print("Banner: \(banner)")
             }
@@ -151,13 +151,13 @@ struct SwiftADBDemo {
         let keyStore = InMemoryKeyStore(identifier: "adb@iOS")
         _ = try keyStore.loadOrGenerateKeyPair()
         let wire = try keyStore.adbPublicKeyWireData()
-        print("Yeni anahtar pubkey wire: \(wire.count) bayt")
+        print("New key pubkey wire: \(wire.count) bytes")
         print(String(data: wire.prefix(60), encoding: .utf8) ?? "?")
         let client = ADBClient(keyStore: keyStore)
-        print("Bağlanılıyor (yeni anahtar): \(host):\(port)...")
+        print("Connecting (new key): \(host):\(port)...")
         try await client.connect(host: host, port: port)
         if let device = client.device {
-            print("Bağlandı: \(device.serial) \(device.model ?? "")")
+            print("Connected: \(device.serial) \(device.model ?? "")")
         }
         await client.disconnect()
     }
@@ -196,7 +196,7 @@ struct SwiftADBDemo {
 
         print("adb b64 len: \(adbB64.count)")
         print("Swift b64 len: \(swiftB64.count)")
-        print("Eşleşme: \(adbB64 == swiftB64)")
+        print("Match: \(adbB64 == swiftB64)")
         if adbB64 != swiftB64 {
             print("adb:   \(adbB64.prefix(48))…")
             print("Swift: \(swiftB64.prefix(48))…")
@@ -223,16 +223,16 @@ struct SwiftADBDemo {
             .appendingPathComponent(".android/adbkey")
         let pubPath = keyPath.deletingLastPathComponent().appendingPathComponent("adbkey.pub")
 
-        print("SwiftADB sürümü: \(SwiftADBVersion.current)")
-        print("Anahtar dosyası: \(keyPath.path)")
-        print("Anahtar mevcut: \(FileManager.default.fileExists(atPath: keyPath.path))")
+        print("SwiftADB version: \(SwiftADBVersion.current)")
+        print("Key file: \(keyPath.path)")
+        print("Key exists: \(FileManager.default.fileExists(atPath: keyPath.path))")
 
         let line = try keyStore.adbPublicKeyLine()
         let swiftB64 = line.split(separator: " ").first.map(String.init) ?? ""
         if FileManager.default.fileExists(atPath: pubPath.path),
            let filePub = try? String(contentsOf: pubPath, encoding: .utf8) {
             let fileB64 = filePub.split(separator: " ").first.map(String.init) ?? ""
-            print("Pubkey adb ile uyumlu: \(swiftB64 == fileB64)")
+            print("Pubkey matches adb: \(swiftB64 == fileB64)")
             if swiftB64 != fileB64 {
                 print("  Swift:  \(swiftB64.prefix(48))…")
                 print("  adbkey: \(fileB64.prefix(48))…")
@@ -241,7 +241,7 @@ struct SwiftADBDemo {
 
         let token = Data(repeating: 0xAB, count: ADBProtocol.tokenSize)
         let signature = try keyStore.signToken(token)
-        print("İmza uzunluğu: \(signature.count) bayt (beklenen: 256)")
+        print("Signature length: \(signature.count) bytes (expected: 256)")
 
         #if os(macOS)
         let tempDir = FileManager.default.temporaryDirectory
@@ -260,13 +260,13 @@ struct SwiftADBDemo {
         process.waitUntilExit()
         if process.terminationStatus == 0,
            let opensslSig = try? Data(contentsOf: sigURL) {
-            print("OpenSSL imza ile aynı: \(signature == opensslSig)")
+            print("Same as OpenSSL signature: \(signature == opensslSig)")
             if signature != opensslSig {
                 print("  Swift:   \(signature.prefix(12).map { String(format: "%02x", $0) }.joined())…")
                 print("  OpenSSL: \(opensslSig.prefix(12).map { String(format: "%02x", $0) }.joined())…")
             }
         } else {
-            print("OpenSSL karşılaştırması yapılamadı (openssl rsautl)")
+            print("OpenSSL comparison unavailable (openssl rsautl)")
         }
         #endif
     }
@@ -285,7 +285,7 @@ struct SwiftADBDemo {
 
     static func runShell(args: [String], client: ADBClient) async throws {
         guard args.count >= 3 else {
-            print("Kullanım: shell <host> [port] <komut>")
+            print("Usage: shell <host> [port] <command>")
             return
         }
 
@@ -313,7 +313,7 @@ struct SwiftADBDemo {
 
     static func runPush(args: [String], client: ADBClient) async throws {
         guard args.count >= 4 else {
-            print("Kullanım: push <host> <local> <remote> [port]")
+            print("Usage: push <host> <local> <remote> [port]")
             return
         }
         let host = args[1]
@@ -327,14 +327,14 @@ struct SwiftADBDemo {
         let sync = DefaultFileSyncService(client: client)
         try await sync.push(localURL: local, remotePath: remote) { progress in
             let percent = Int(progress.fractionCompleted * 100)
-            print("\rAktarım: %\(percent)", terminator: "")
+            print("\rTransfer: %\(percent)", terminator: "")
         }
-        print("\nPush tamamlandı.")
+        print("\nPush completed.")
     }
 
     static func runPull(args: [String], client: ADBClient) async throws {
         guard args.count >= 4 else {
-            print("Kullanım: pull <host> <remote> <local> [port]")
+            print("Usage: pull <host> <remote> <local> [port]")
             return
         }
         let host = args[1]
@@ -348,14 +348,14 @@ struct SwiftADBDemo {
         let sync = DefaultFileSyncService(client: client)
         try await sync.pull(remotePath: remote, localURL: local) { progress in
             let percent = Int(progress.fractionCompleted * 100)
-            print("\rAktarım: %\(percent)", terminator: "")
+            print("\rTransfer: %\(percent)", terminator: "")
         }
-        print("\nPull tamamlandı.")
+        print("\nPull completed.")
     }
 
     static func runStat(args: [String], client: ADBClient) async throws {
         guard args.count >= 3 else {
-            print("Kullanım: stat <host> <remotePath> [port]")
+            print("Usage: stat <host> <remotePath> [port]")
             return
         }
         let host = args[1]
@@ -376,7 +376,7 @@ struct SwiftADBDemo {
         try await client.connect(host: host, port: port)
         defer { Task { await client.disconnect() } }
 
-        print("Logcat akışı başladı (Ctrl+C ile durdur)...")
+        print("Logcat stream started (Ctrl+C to stop)...")
         let logcat = DefaultLogcatService(client: client)
         let stream = try await logcat.stream(filter: nil)
 
@@ -387,7 +387,7 @@ struct SwiftADBDemo {
 
     static func runForward(args: [String], client: ADBClient) async throws {
         guard args.count >= 4 else {
-            print("Kullanım: forward <host> <localPort> <remotePort> [port]")
+            print("Usage: forward <host> <localPort> <remotePort> [port]")
             return
         }
         let host = args[1]
@@ -399,8 +399,8 @@ struct SwiftADBDemo {
         try await client.connect(host: host, port: port)
         let forward = DefaultPortForwardService(client: client)
         let session = try await forward.forward(.local(localPort: localPort, remotePort: remotePort))
-        print("Port yönlendirme aktif: localhost:\(localPort) → device:\(remotePort)")
-        print("Durdurmak için Ctrl+C")
+        print("Port forwarding active: localhost:\(localPort) → device:\(remotePort)")
+        print("Press Ctrl+C to stop")
 
         try await Task.sleep(nanoseconds: 3600_000_000_000)
         try await forward.remove(session)
@@ -425,9 +425,9 @@ enum DemoError: Error, CustomStringConvertible {
 
     var description: String {
         switch self {
-        case .missingHost: return "Host adresi gerekli"
-        case .invalidPort: return "Geçersiz port"
-        case .commandFailed(let cmd): return "Komut başarısız: \(cmd)"
+        case .missingHost: return "Host address required"
+        case .invalidPort: return "Invalid port"
+        case .commandFailed(let cmd): return "Command failed: \(cmd)"
         }
     }
 }

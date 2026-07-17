@@ -2,7 +2,7 @@ import Foundation
 import SwiftADBAuthentication
 import SwiftADBTransport
 
-/// ADB oturumu — tek okuyucu ile mesaj yönlendirme.
+/// ADB session — message routing with a single reader.
 public actor ADBSession {
     private let transport: TransportBox
     private let keyStore: any ADBKeyStore
@@ -35,7 +35,7 @@ public actor ADBSession {
     public var isConnected: Bool { connected }
 
     public func connect() async throws {
-        ADBLog.info("ADB oturumu başlatılıyor: \(transport.transport.host):\(transport.transport.port)", category: "Session")
+        ADBLog.info("Starting ADB session: \(transport.transport.host):\(transport.transport.port)", category: "Session")
         try await transport.transport.connect()
 
         let bannerData = Data(ADBProtocol.defaultBanner.utf8)
@@ -51,7 +51,7 @@ public actor ADBSession {
         try await performHandshake()
         startReader()
         connected = true
-        ADBLog.info("ADB oturumu hazır: \(deviceBanner ?? "unknown")", category: "Session")
+        ADBLog.info("ADB session ready: \(deviceBanner ?? "unknown")", category: "Session")
     }
 
     public func disconnect() async {
@@ -83,7 +83,7 @@ public actor ADBSession {
         let stream = ADBStream(localID: localID, destination: destination, session: self)
         streams[localID] = stream
 
-        ADBLog.debug("Servis açılıyor: \(destination) (local=\(localID))", category: "Session")
+        ADBLog.debug("Opening service: \(destination) (local=\(localID))", category: "Session")
 
         let remoteID = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<UInt32, Error>) in
             openWaiters[localID] = continuation
@@ -113,7 +113,7 @@ public actor ADBSession {
             group.addTask {
                 try await Task.sleep(nanoseconds: Self.writeTimeoutNanoseconds)
                 await self.timeoutWriteWaiter(key: key, localID: localID)
-                throw ADBClientError.connectionFailed("WRTE zaman aşımı (local=\(localID))")
+                throw ADBClientError.connectionFailed("WRTE timed out (local=\(localID))")
             }
             try await group.next()
             group.cancelAll()
@@ -145,7 +145,7 @@ public actor ADBSession {
 
     private func timeoutWriteWaiter(key: String, localID: UInt32) {
         if let waiter = writeWaiters.removeValue(forKey: key) {
-            waiter.resume(throwing: ADBClientError.connectionFailed("WRTE zaman aşımı (local=\(localID))"))
+            waiter.resume(throwing: ADBClientError.connectionFailed("WRTE timed out (local=\(localID))"))
         }
     }
 
@@ -170,7 +170,7 @@ public actor ADBSession {
                 return
 
             case .stls:
-                ADBLog.info("TLS yükseltmesi başlatılıyor", category: "Session")
+                ADBLog.info("Starting TLS upgrade", category: "Session")
                 try await transport.transport.send(
                     header: ADBMessageHeader(command: .stls, arg0: 1, arg1: 0),
                     payload: nil
@@ -179,12 +179,12 @@ public actor ADBSession {
                 try await transport.transport.upgradeToTLS(identity: identity)
 
             default:
-                throw ADBClientError.connectionFailed("Beklenmeyen el sıkışma mesajı: \(message.command)")
+                throw ADBClientError.connectionFailed("Unexpected handshake message: \(message.command)")
             }
         }
     }
 
-    /// iRemoteController / ADBAppFetcher ile birebir aynı akış.
+    /// Same flow as iRemoteController / ADBAppFetcher.
     private func completeRSAAuthFlow(firstAuth: ADBMessage) async throws {
         guard firstAuth.header.arg0 == ADBAuthType.token.rawValue,
               firstAuth.payload.count >= ADBProtocol.tokenSize else {
@@ -192,7 +192,7 @@ public actor ADBSession {
         }
 
         let token = firstAuth.payload.prefix(ADBProtocol.tokenSize)
-        ADBLog.info("Kimlik doğrulama: token imzalanıyor", category: "Session")
+        ADBLog.info("Authentication: signing token", category: "Session")
 
         let signature = try keyStore.signToken(Data(token))
         try await transport.transport.send(
@@ -203,7 +203,7 @@ public actor ADBSession {
         let afterSign = try await receiveHandshakeMessage(timeoutNanoseconds: Self.handshakeTimeoutNanoseconds)
         if afterSign.command == .cnxn {
             deviceBanner = String(data: afterSign.payload.filter { $0 != 0 }, encoding: .utf8)
-            ADBLog.info("Anahtar TV'de kayıtlı — bağlantı kuruldu", category: "Session")
+            ADBLog.info("Key registered on TV — connection established", category: "Session")
             return
         }
 
@@ -212,7 +212,7 @@ public actor ADBSession {
         }
 
         ADBLog.info(
-            "Yeni anahtar algılandı (AUTH arg0=\(afterSign.header.arg0)) — public key gönderiliyor",
+            "New key detected (AUTH arg0=\(afterSign.header.arg0)) — sending public key",
             category: "Session"
         )
         try await sendPublicKey()
@@ -223,13 +223,13 @@ public actor ADBSession {
         }
 
         deviceBanner = String(data: afterPublicKey.payload.filter { $0 != 0 }, encoding: .utf8)
-        ADBLog.info("TV onayı alındı — bağlantı kuruldu", category: "Session")
+        ADBLog.info("TV approval received — connection established", category: "Session")
     }
 
     private func sendPublicKey() async throws {
         let payload = try keyStore.adbPublicKeyWireData()
         ADBLog.info(
-            "Public key gönderildi (\(payload.count) bayt). TV ekranında 'USB hata ayıklamaya izin ver' onayını bekleyin…",
+            "Public key sent (\(payload.count) bytes). On the TV, approve 'Allow USB debugging'…",
             category: "Session"
         )
         try await transport.transport.send(
@@ -264,7 +264,7 @@ public actor ADBSession {
                     let message = try await transport.transport.receiveMessage()
                     await route(message)
                 } catch {
-                    ADBLog.warning("Okuyucu döngüsü sonlandı: \(error)", category: "Session")
+                    ADBLog.warning("Reader loop ended: \(error)", category: "Session")
                     await shutdownStreams()
                     connected = false
                     break

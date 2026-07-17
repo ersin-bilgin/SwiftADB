@@ -50,7 +50,7 @@ public struct ConsoleADBLogger: ADBLogger, Sendable {
     }
 }
 
-/// Log girdilerini callback ile ileten logger (UI / test için).
+/// Logger that forwards log entries via callback (for UI / tests).
 public struct CallbackADBLogger: ADBLogger, Sendable {
     public let minimumLevel: ADBLogLevel
     private let handler: @Sendable (ADBLogEntry) -> Void
@@ -66,7 +66,7 @@ public struct CallbackADBLogger: ADBLogger, Sendable {
     }
 }
 
-/// Birden fazla logger'a aynı anda yazar.
+/// Writes to multiple loggers at once.
 public struct MultiplexADBLogger: ADBLogger, Sendable {
     private let loggers: [any ADBLogger]
 

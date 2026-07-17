@@ -8,7 +8,7 @@ public enum FileSyncError: Error, Sendable {
     case transferFailed(String)
 }
 
-/// Dosya aktarım ilerlemesi.
+/// File transfer progress.
 public struct TransferProgress: Sendable {
     public let bytesTransferred: Int64
     public let totalBytes: Int64
@@ -24,14 +24,14 @@ public struct TransferProgress: Sendable {
     }
 }
 
-/// Uzak dosya bilgisi.
+/// Remote file metadata.
 public struct RemoteFileStat: Sendable {
     public let mode: UInt32
     public let size: UInt64
     public let mtime: UInt32
 }
 
-/// ADB push/pull dosya senkronizasyon servisi.
+/// ADB push/pull file synchronization service.
 public protocol ADBFileSyncService: Sendable {
     func stat(remotePath: String) async throws -> RemoteFileStat
     func push(
@@ -102,7 +102,7 @@ public final class DefaultFileSyncService: ADBFileSyncService, @unchecked Sendab
             )
 
         default:
-            throw FileSyncError.transferFailed("Beklenmeyen SYNC yanıtı: \(response.command)")
+            throw FileSyncError.transferFailed("Unexpected SYNC response: \(response.command)")
         }
     }
 
@@ -145,7 +145,7 @@ public final class DefaultFileSyncService: ADBFileSyncService, @unchecked Sendab
         try await stream.write(SYNCProtocol.done())
         let response = try await readSyncResponse(from: stream, timeout: 15)
         if response.command == .fail {
-            throw FileSyncError.transferFailed(String(data: response.payload, encoding: .utf8) ?? "Push başarısız")
+            throw FileSyncError.transferFailed(String(data: response.payload, encoding: .utf8) ?? "Push failed")
         }
     }
 
@@ -191,7 +191,7 @@ public final class DefaultFileSyncService: ADBFileSyncService, @unchecked Sendab
                     return
 
                 case .fail:
-                    throw FileSyncError.transferFailed(String(data: payload, encoding: .utf8) ?? "Pull başarısız")
+                    throw FileSyncError.transferFailed(String(data: payload, encoding: .utf8) ?? "Pull failed")
 
                 default:
                     _ = length
@@ -202,7 +202,7 @@ public final class DefaultFileSyncService: ADBFileSyncService, @unchecked Sendab
         if !fileData.isEmpty {
             try fileData.write(to: localURL, options: .atomic)
         } else {
-            throw FileSyncError.transferFailed("Pull tamamlanamadı")
+            throw FileSyncError.transferFailed("Pull could not be completed")
         }
     }
 
@@ -223,7 +223,7 @@ public final class DefaultFileSyncService: ADBFileSyncService, @unchecked Sendab
             }
             try await Task.sleep(nanoseconds: 20_000_000)
         }
-        throw FileSyncError.transferFailed("SYNC yanıt zaman aşımı")
+        throw FileSyncError.transferFailed("SYNC response timed out")
     }
 }
 

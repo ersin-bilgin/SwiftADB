@@ -3,13 +3,13 @@ import Network
 import SwiftADBClient
 import SwiftADBTransport
 
-/// Port yönlendirme yönü.
+/// Port forwarding direction.
 public enum PortForwardDirection: Sendable {
     case local(localPort: UInt16, remotePort: UInt16)
     case remote(localPort: UInt16, remotePort: UInt16)
 }
 
-/// Aktif port yönlendirme oturumu.
+/// Active port forwarding session.
 public struct PortForwardSession: Sendable, Identifiable {
     public let id: UUID
     public let direction: PortForwardDirection
@@ -28,7 +28,7 @@ public enum PortForwardError: Error, Sendable {
     case forwardFailed(String)
 }
 
-/// ADB port yönlendirme servisi.
+/// ADB port forwarding service.
 public protocol ADBPortForwardService: Sendable {
     func forward(_ direction: PortForwardDirection) async throws -> PortForwardSession
     func remove(_ session: PortForwardSession) async throws

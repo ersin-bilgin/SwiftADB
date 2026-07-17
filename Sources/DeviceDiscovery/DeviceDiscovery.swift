@@ -2,7 +2,7 @@ import Foundation
 import Network
 import SwiftADBTransport
 
-/// Keşfedilen ADB cihazı.
+/// Discovered ADB device.
 public struct DiscoveredDevice: Sendable, Identifiable, Hashable {
     public let id: String
     public let name: String
@@ -38,13 +38,13 @@ public enum DeviceDiscoveryError: Error, Sendable {
     case permissionDenied
 }
 
-/// Ağ üzerinde ADB cihazlarını keşfeder.
+/// Discovers ADB devices on the network.
 public protocol DeviceDiscoverer: Sendable {
     func startBrowsing() async throws -> AsyncStream<DiscoveredDevice>
     func stopBrowsing() async
 }
 
-/// Bonjour/mDNS ile ADB cihaz keşfi.
+/// ADB device discovery via Bonjour/mDNS.
 public final class BonjourDeviceDiscoverer: DeviceDiscoverer, @unchecked Sendable {
     private var browser: NWBrowser?
     private var continuation: AsyncStream<DiscoveredDevice>.Continuation?
@@ -120,7 +120,7 @@ public final class BonjourDeviceDiscoverer: DeviceDiscoverer, @unchecked Sendabl
     }
 }
 
-/// Manuel IP/port ile cihaz oluşturucu.
+/// Manual IP/port device factory.
 public enum DeviceFactory {
     public static func manual(host: String, port: UInt16 = 5555, name: String? = nil) -> DiscoveredDevice {
         DiscoveredDevice(

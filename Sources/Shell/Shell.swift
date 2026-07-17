@@ -1,7 +1,7 @@
 import Foundation
 import SwiftADBClient
 
-/// Shell protokol sürümü.
+/// Shell protocol version.
 public enum ShellProtocolVersion: Sendable {
     case v1
     case v2
@@ -55,7 +55,7 @@ enum ShellV2 {
     }
 }
 
-/// Shell komut çıktısı.
+/// Shell command output.
 public struct ShellOutput: Sendable {
     public let stdout: String
     public let stderr: String
@@ -75,7 +75,7 @@ public enum ShellError: Error, Sendable {
     case timeout
 }
 
-/// ADB shell servisi.
+/// ADB shell service.
 public protocol ADBShellService: Sendable {
     func execute(_ command: String, protocolVersion: ShellProtocolVersion) async throws -> ShellOutput
     func stream(_ command: String) async throws -> AsyncStream<String>

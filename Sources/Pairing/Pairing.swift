@@ -5,7 +5,7 @@ public enum PairingMethod: Sendable {
     case pairingCode(String)
 }
 
-/// Eşleştirme oturumu bilgisi.
+/// Pairing session information.
 public struct PairingSession: Sendable {
     public let host: String
     public let port: UInt16
@@ -25,12 +25,12 @@ public enum PairingError: Error, Sendable {
     case adbToolNotFound
 }
 
-/// Kablosuz ADB eşleştirme protokolü.
+/// Wireless ADB pairing protocol.
 public protocol ADBPairingClient: Sendable {
     func pair(session: PairingSession, keyStore: any ADBKeyStore) async throws
 }
 
-/// Sistem `adb pair` aracını kullanan eşleştirme istemcisi (macOS).
+/// Pairing client using the system `adb pair` tool (macOS).
 #if os(macOS)
 public final class SystemPairingClient: ADBPairingClient, @unchecked Sendable {
     public let adbPath: String
@@ -93,7 +93,7 @@ public final class SystemPairingClient: ADBPairingClient, @unchecked Sendable {
 }
 #endif
 
-/// Eşleştirme istemcisi — önce sistem adb, gerekirse native deneme.
+/// Pairing client — tries system adb first, then native pairing if needed.
 public final class DefaultPairingClient: ADBPairingClient, @unchecked Sendable {
     private let systemClient: SystemPairingClient
 
@@ -108,10 +108,10 @@ public final class DefaultPairingClient: ADBPairingClient, @unchecked Sendable {
 
         do {
             try await pairNative(session: session, code: code, keyStore: keyStore)
-            ADBLog.info("Native pairing başarılı: \(session.host):\(session.port)", category: "Pairing")
+            ADBLog.info("Native pairing succeeded: \(session.host):\(session.port)", category: "Pairing")
             return
         } catch {
-            ADBLog.warning("Native pairing başarısız, sistem adb deneniyor: \(error)", category: "Pairing")
+            ADBLog.warning("Native pairing failed, trying system adb: \(error)", category: "Pairing")
         }
 
         #if os(macOS)
@@ -123,9 +123,9 @@ public final class DefaultPairingClient: ADBPairingClient, @unchecked Sendable {
         #endif
 
         #if os(macOS)
-        let failureMessage = "Eşleştirme başarısız. Android SDK platform-tools kurulu olduğundan emin olun."
+        let failureMessage = "Pairing failed. Make sure Android SDK platform-tools is installed."
         #else
-        let failureMessage = "Eşleştirme başarısız. iOS'ta yalnızca native pairing desteklenir."
+        let failureMessage = "Pairing failed. Only native pairing is supported on iOS."
         #endif
         throw PairingError.pairingFailed(failureMessage)
     }
@@ -150,7 +150,7 @@ public final class DefaultPairingClient: ADBPairingClient, @unchecked Sendable {
         let headerData = try await transport.receiveRaw(count: PairingConstants.headerSize)
         let header = try PairingPacketHeader.decode(from: headerData)
         guard header.type == .spake2Msg else {
-            throw PairingError.pairingFailed("SPAKE2 mesajı bekleniyordu")
+            throw PairingError.pairingFailed("Expected SPAKE2 message")
         }
         let theirMsg = try await transport.receiveRaw(count: Int(header.payloadSize))
 
@@ -170,7 +170,7 @@ public final class DefaultPairingClient: ADBPairingClient, @unchecked Sendable {
         let peerHeaderData = try await transport.receiveRaw(count: PairingConstants.headerSize)
         let peerPacketHeader = try PairingPacketHeader.decode(from: peerHeaderData)
         guard peerPacketHeader.type == .peerInfo else {
-            throw PairingError.pairingFailed("PeerInfo bekleniyordu")
+            throw PairingError.pairingFailed("Expected PeerInfo")
         }
         _ = try await transport.receiveRaw(count: Int(peerPacketHeader.payloadSize))
     }

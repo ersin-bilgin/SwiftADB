@@ -1,6 +1,6 @@
 import Foundation
 
-/// ADB cihazına ham bağlantı sağlayan taşıma katmanı protokolü.
+/// Transport layer protocol providing raw connection to an ADB device.
 public protocol ADBTransport: Sendable {
     var isConnected: Bool { get async }
     var host: String { get }

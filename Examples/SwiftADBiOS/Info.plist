@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>NSLocalNetworkUsageDescription</key>
-    <string>ADB cihazlarını keşfetmek için yerel ağ erişimi gerekir.</string>
+    <string>Local network access is required to discover ADB devices.</string>
     <key>NSBonjourServices</key>
     <array>
         <string>_adb._tcp</string>

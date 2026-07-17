@@ -55,7 +55,7 @@ enum SYNCProtocol {
 
     static let statV2RecordSize = 72
 
-    /// LST2/STA2 düz stat_v2 kaydı (72 bayt).
+    /// LST2/STA2 flat stat_v2 record (72 bytes).
     static func parseStatV2Record(from data: Data) -> (SYNCCommand, Data, Int)? {
         guard data.count >= statV2RecordSize else { return nil }
         let id = data.readUInt32LE(at: 0)
@@ -69,7 +69,7 @@ enum SYNCProtocol {
         }
     }
 
-    /// STAT v1 (20 bayt) ve LST2 v2 (72 bayt düz struct) yanıtlarını ayrıştırır.
+    /// Parses STAT v1 (20 bytes) and LST2 v2 (72-byte flat struct) responses.
     static func parseResponse(from data: Data) -> (SYNCCommand, Data, Int)? {
         if let record = parseStatV2Record(from: data) {
             return record

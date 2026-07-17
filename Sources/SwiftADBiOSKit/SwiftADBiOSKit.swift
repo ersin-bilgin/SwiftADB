@@ -8,7 +8,7 @@ public final class ADBViewModel: ObservableObject {
     @Published public var connectedDevice: ADBDevice?
     @Published public var shellOutput: String = ""
     @Published public var logLines: [String] = []
-    @Published public var statusMessage: String = "Bağlı değil"
+    @Published public var statusMessage: String = "Not connected"
     @Published public var isBusy = false
 
     public let client = ADBClient()
@@ -20,7 +20,7 @@ public final class ADBViewModel: ObservableObject {
     public func discover() async {
         isBusy = true
         defer { isBusy = false }
-        statusMessage = "Cihazlar aranıyor..."
+        statusMessage = "Searching for devices..."
 
         var found: [DiscoveredDevice] = []
         let discoverer = BonjourDeviceDiscoverer()
@@ -45,7 +45,7 @@ public final class ADBViewModel: ObservableObject {
         #endif
 
         devices = found
-        statusMessage = "\(found.count) ağ cihazı, \(usbDevices.count) USB cihazı bulundu"
+        statusMessage = "\(found.count) network device(s), \(usbDevices.count) USB device(s) found"
     }
 
     public func connect(host: String, port: UInt16 = 5555) async {
@@ -54,9 +54,9 @@ public final class ADBViewModel: ObservableObject {
         do {
             try await client.connect(host: host, port: port)
             connectedDevice = client.device
-            statusMessage = "Bağlandı: \(connectedDevice?.serial ?? host)"
+            statusMessage = "Connected: \(connectedDevice?.serial ?? host)"
         } catch {
-            statusMessage = "Bağlantı hatası: \(error)"
+            statusMessage = "Connection error: \(error)"
         }
     }
 
@@ -66,16 +66,16 @@ public final class ADBViewModel: ObservableObject {
         do {
             try await client.connectUSB(deviceID: deviceID)
             connectedDevice = client.device
-            statusMessage = "USB bağlandı: \(connectedDevice?.serial ?? "")"
+            statusMessage = "USB connected: \(connectedDevice?.serial ?? "")"
         } catch {
-            statusMessage = "USB hatası: \(error)"
+            statusMessage = "USB error: \(error)"
         }
     }
 
     public func disconnect() async {
         await client.disconnect()
         connectedDevice = nil
-        statusMessage = "Bağlantı kesildi"
+        statusMessage = "Disconnected"
     }
 
     public func runShell(_ command: String) async {
@@ -89,9 +89,9 @@ public final class ADBViewModel: ObservableObject {
                 shellOutput += "\n[stderr]\n\(output.stderr)"
             }
             shellOutput += "\n[exit: \(output.exitCode)]"
-            statusMessage = "Shell tamamlandı"
+            statusMessage = "Shell completed"
         } catch {
-            statusMessage = "Shell hatası: \(error)"
+            statusMessage = "Shell error: \(error)"
         }
     }
 
@@ -104,7 +104,7 @@ public final class ADBViewModel: ObservableObject {
                 if logLines.count > 200 { logLines.removeFirst() }
             }
         } catch {
-            statusMessage = "Logcat hatası: \(error)"
+            statusMessage = "Logcat error: \(error)"
         }
     }
 }
@@ -118,7 +118,7 @@ public struct ADBDeviceListView: View {
 
     public var body: some View {
         List {
-            Section("Ağ Cihazları") {
+            Section("Network Devices") {
                 ForEach(viewModel.devices) { device in
                     Button("\(device.name) — \(device.host):\(device.port)") {
                         Task { await viewModel.connect(host: device.host, port: device.port) }
@@ -127,7 +127,7 @@ public struct ADBDeviceListView: View {
             }
 
             #if os(macOS)
-            Section("USB Cihazları") {
+            Section("USB Devices") {
                 ForEach(viewModel.usbDevices) { device in
                     Button("\(device.serial) (id=\(device.id))") {
                         Task { await viewModel.connectUSB(deviceID: device.id) }
@@ -136,7 +136,7 @@ public struct ADBDeviceListView: View {
             }
             #endif
         }
-        .navigationTitle("Cihazlar")
+        .navigationTitle("Devices")
     }
 }
 
@@ -150,16 +150,16 @@ public struct ADBShellView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TextField("Komut", text: $command)
+            TextField("Command", text: $command)
                 .textFieldStyle(.roundedBorder)
 
-            Button("Çalıştır") {
+            Button("Run") {
                 Task { await viewModel.runShell(command) }
             }
             .disabled(viewModel.connectedDevice == nil || viewModel.isBusy)
 
             ScrollView {
-                Text(viewModel.shellOutput.isEmpty ? "Çıktı yok" : viewModel.shellOutput)
+                Text(viewModel.shellOutput.isEmpty ? "No output" : viewModel.shellOutput)
                     .font(.system(.body, design: .monospaced))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -182,12 +182,12 @@ public struct ADBMainView: View {
                     .foregroundStyle(.secondary)
 
                 HStack {
-                    Button("Keşfet") { Task { await viewModel.discover() } }
-                    Button("Kes") { Task { await viewModel.disconnect() } }
+                    Button("Discover") { Task { await viewModel.discover() } }
+                    Button("Disconnect") { Task { await viewModel.disconnect() } }
                         .disabled(viewModel.connectedDevice == nil)
                 }
 
-                NavigationLink("Cihazlar") {
+                NavigationLink("Devices") {
                     ADBDeviceListView(viewModel: viewModel)
                 }
                 NavigationLink("Shell") {
@@ -201,7 +201,7 @@ public struct ADBMainView: View {
 }
 
 #if os(iOS)
-/// iOS uygulama giriş noktası — Xcode iOS projesinde `@main` olarak kullanın.
+/// iOS app entry point — use as `@main` in an Xcode iOS project.
 public struct SwiftADBiOSApp: App {
     public init() {}
 

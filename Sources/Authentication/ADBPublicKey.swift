@@ -8,7 +8,7 @@ enum ADBPublicKey {
         encodeBinary(modulus: modulus, exponent: exponent).base64EncodedString()
     }
 
-    /// Android ADB `RSAPublicKey` yapısı — iRemoteController ADBKeyManager ile birebir.
+    /// Android ADB `RSAPublicKey` structure — identical to iRemoteController ADBKeyManager.
     static func encodeBinary(modulus: Data, exponent: UInt32) -> Data {
         let padded = normalizedModulus(modulus)
         guard padded.count == modulusSize else { return Data() }
@@ -39,12 +39,12 @@ enum ADBPublicKey {
         "\(base64Key) \(identifier)"
     }
 
-    /// AUTH(type=3) wire payload — TV onay diyalogunu tetikler.
+    /// AUTH(type=3) wire payload — triggers the TV approval dialog.
     static func encodeWirePayload(line: String) -> Data {
         Data((line + "\n").utf8)
     }
 
-    /// iRemoteController ile aynı wire format: `base64 + " adb@iOS\n"`
+    /// Same wire format as iRemoteController: `base64 + " adb@iOS\n"`
     static func encodeWirePayload(base64Key: String, identifier: String = "adb@iOS") -> Data {
         Data((base64Key + " \(identifier)\n").utf8)
     }

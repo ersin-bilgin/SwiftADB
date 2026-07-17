@@ -1,7 +1,7 @@
 import Foundation
 import SwiftADBTransport
 
-/// ADB kimlik doğrulama türleri.
+/// ADB authentication types.
 public enum ADBAuthType: UInt32, Sendable {
     case token = 1
     case signature = 2
@@ -21,31 +21,31 @@ public enum AuthenticationError: Error, Sendable, CustomStringConvertible {
     public var description: String {
         switch self {
         case .authRejected:
-            return "ADB anahtarı cihaz tarafından reddedildi"
+            return "ADB key rejected by device"
         case .invalidToken:
-            return "Geçersiz ADB kimlik doğrulama token'ı"
+            return "Invalid ADB authentication token"
         case .unexpectedMessage(let message):
-            return "Beklenmeyen kimlik doğrulama mesajı: \(message)"
+            return "Unexpected authentication message: \(message)"
         case .keyGenerationFailed:
-            return "ADB anahtarı oluşturulamadı"
+            return "Failed to generate ADB key"
         case .signingFailed:
-            return "ADB token imzalanamadı"
+            return "Failed to sign ADB token"
         case .authorizationRequired:
-            return "Cihazda RSA anahtar onayı gerekli. Android TV'de Geliştirici seçenekleri açıkken ekranda 'USB hata ayıklamaya izin ver' diyalogunu onaylayın."
+            return "RSA key approval required on device. On Android TV with Developer options enabled, approve the 'Allow USB debugging' dialog on screen."
         case .handshakeTimeout:
-            return "ADB kimlik doğrulama zaman aşımı. Cihaz yanıt vermedi."
+            return "ADB authentication timed out. The device did not respond."
         case .awaitingTVApproval:
-            return "TV ekranında 'USB hata ayıklamaya izin ver' onayını kabul edin, ardından testi tekrar çalıştırın."
+            return "Accept 'Allow USB debugging' on the TV screen, then run the test again."
         }
     }
 }
 
-/// ADB kimlik doğrulama akışı.
+/// ADB authentication flow.
 public protocol ADBAuthenticator: Sendable {
     func authenticate(transport: any ADBTransport, keyStore: any ADBKeyStore) async throws
 }
 
-/// Varsayılan kimlik doğrulama — iRemoteController ile aynı RSA akışı.
+/// Default authentication — same RSA flow as iRemoteController.
 public final class DefaultAuthenticator: ADBAuthenticator, @unchecked Sendable {
     private static let tvApprovalTimeoutNanoseconds: UInt64 = 30_000_000_000
 
