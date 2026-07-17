@@ -15,13 +15,13 @@ private enum ConnectionPhase: Equatable {
     var label: String {
         switch self {
         case .idle:
-            return "Bağlı değil"
+            return "Not connected"
         case .connecting:
-            return "Bağlanılıyor…"
+            return "Connecting…"
         case .awaitingTVApproval:
-            return "TV onayı bekleniyor (30 sn)"
+            return "Waiting for TV approval (30 s)"
         case .connected(let detail):
-            return "Bağlı — \(detail)"
+            return "Connected — \(detail)"
         case .failed(let message):
             return message
         }
@@ -55,7 +55,7 @@ struct TestAppView: View {
     @State private var connectionPhase: ConnectionPhase = .idle
     @State private var isRunningTests = false
     @State private var results: [DeviceTestResult] = []
-    @State private var status = "Hazır"
+    @State private var status = "Ready"
     @State private var selectedTab = 0
     @Environment(\.horizontalSizeClass) private var sizeClass
 
@@ -86,7 +86,7 @@ struct TestAppView: View {
         } detail: {
             TabView(selection: $selectedTab) {
                 resultsPanel
-                    .tabItem { Label("Sonuçlar", systemImage: "checklist") }
+                    .tabItem { Label("Results", systemImage: "checklist") }
                     .tag(0)
                 logPanel
                     .tabItem { Label("Log", systemImage: "text.alignleft") }
@@ -100,7 +100,7 @@ struct TestAppView: View {
             VStack(spacing: 0) {
                 sidebar
                 Picker("", selection: $selectedTab) {
-                    Text("Sonuçlar").tag(0)
+                    Text("Results").tag(0)
                     Text("Log").tag(1)
                 }
                 .pickerStyle(.segmented)
@@ -119,7 +119,7 @@ struct TestAppView: View {
 
     private var sidebar: some View {
         Form {
-            Section("Hedef Cihaz") {
+            Section("Target Device") {
                 TextField("Host", text: $host)
                     #if os(iOS)
                     .keyboardType(.decimalPad)
@@ -139,7 +139,7 @@ struct TestAppView: View {
                     Task { await connectToTV() }
                 } label: {
                     Label(
-                        connectionPhase.isBusy ? "Bağlanılıyor…" : "TV'ye Bağlan",
+                        connectionPhase.isBusy ? "Connecting…" : "Connect to TV",
                         systemImage: "tv.and.mediabox"
                     )
                     .frame(maxWidth: .infinity)
@@ -149,7 +149,7 @@ struct TestAppView: View {
                 .disabled(isBusy || host.isEmpty)
 
                 if connectionPhase.isConnected {
-                    Button("Bağlantıyı Kes", role: .destructive) {
+                    Button("Disconnect", role: .destructive) {
                         Task { await disconnectFromTV() }
                     }
                     .disabled(isRunningTests)
@@ -167,7 +167,7 @@ struct TestAppView: View {
                 #if os(iOS)
                 if connectionPhase == .awaitingTVApproval {
                     Label(
-                        "TV ekranında \"USB hata ayıklamaya izin ver\" diyalogunu onaylayın.",
+                        "On the TV, approve the \"Allow USB debugging\" dialog.",
                         systemImage: "hand.tap.fill"
                     )
                     .font(.caption)
@@ -175,17 +175,17 @@ struct TestAppView: View {
                 }
                 #endif
             } header: {
-                Text("Bağlantı")
+                Text("Connection")
             } footer: {
                 #if os(iOS)
-                Text("Anahtar otomatik oluşturulur. İlk bağlantıda TV ekranında onay gerekir; adbkey yüklemenize gerek yok.")
+                Text("The key is generated automatically. The first connection requires approval on the TV; you do not need to import an adbkey.")
                 #else
-                Text("Mac ~/.android/adbkey kullanılır. TV'de anahtar kayıtlıysa onay diyalogu çıkmaz.")
+                Text("Uses Mac ~/.android/adbkey. If the key is registered on the TV, no approval dialog appears.")
                 #endif
             }
 
             #if os(iOS)
-            Section("Yerel Ağ") {
+            Section("Local Network") {
                 Label(localNetwork.status.label, systemImage: "wifi")
                     .font(.caption)
                     .foregroundStyle(localNetwork.status == .denied ? .red : .secondary)
@@ -193,45 +193,45 @@ struct TestAppView: View {
                     Text(LocalNetworkPermission.settingsHint)
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
-                    Button("Ayarları Aç") {
+                    Button("Open Settings") {
                         if let url = URL(string: UIApplication.openSettingsURLString) {
                             UIApplication.shared.open(url)
                         }
                     }
                 } else {
-                    Text("TV'ye erişim için iOS yerel ağ izni gerekir. İlk açılışta izin isteği görünebilir.")
+                    Text("iOS local network permission is required to reach the TV. A permission prompt may appear on first launch.")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
             }
             #endif
 
-            Section("ADB Anahtarı") {
+            Section("ADB Key") {
                 Text(keySource)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Section("Testler") {
-                Button(isRunningTests ? "Testler çalışıyor…" : "Tüm Testleri Çalıştır") {
+            Section("Tests") {
+                Button(isRunningTests ? "Running tests…" : "Run All Tests") {
                     Task { await runTests() }
                 }
                 .disabled(isBusy || host.isEmpty)
 
-                Button("Temizle") {
+                Button("Clear") {
                     results = []
                     if !connectionPhase.isConnected {
-                        status = "Hazır"
+                        status = "Ready"
                     }
                 }
                 .disabled(isBusy)
 
-                Button("Logları temizle") {
+                Button("Clear logs") {
                     logStore.clear()
                 }
             }
 
-            Section("Durum") {
+            Section("Status") {
                 Text(status)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -244,7 +244,7 @@ struct TestAppView: View {
         .formStyle(.grouped)
         .frame(minWidth: 280)
         #endif
-        .navigationTitle("Cihaz Testleri")
+        .navigationTitle("Device Tests")
     }
 
     private var connectionIcon: String {
@@ -280,9 +280,9 @@ struct TestAppView: View {
                     Image(systemName: "checklist")
                         .font(.system(size: 48))
                         .foregroundStyle(.secondary)
-                    Text("Test sonucu yok")
+                    Text("No test results")
                         .font(.title2)
-                    Text("Önce \"TV'ye Bağlan\"a basın, ardından testleri çalıştırın.")
+                    Text("Tap \"Connect to TV\" first, then run the tests.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -302,7 +302,7 @@ struct TestAppView: View {
                             Text(result.detail)
                                 .font(.system(.caption, design: .monospaced))
                                 .foregroundStyle(.secondary)
-                            Text(String(format: "%.2f sn", result.duration))
+                            Text(String(format: "%.2f s", result.duration))
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
@@ -311,12 +311,12 @@ struct TestAppView: View {
                 }
             }
         }
-        .navigationTitle("Sonuçlar")
+        .navigationTitle("Results")
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 if !results.isEmpty {
                     let passed = results.filter(\.passed).count
-                    Text("\(passed)/\(results.count) geçti")
+                    Text("\(passed)/\(results.count) passed")
                         .foregroundStyle(passed == results.count ? .green : .orange)
                 }
             }
@@ -330,9 +330,9 @@ struct TestAppView: View {
                     Image(systemName: "text.alignleft")
                         .font(.system(size: 48))
                         .foregroundStyle(.secondary)
-                    Text("Log kaydı yok")
+                    Text("No log entries")
                         .font(.title2)
-                    Text("TV'ye Bağlan'a basınca kimlik doğrulama adımları burada görünür.")
+                    Text("Authentication steps appear here after you tap Connect to TV.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -361,7 +361,7 @@ struct TestAppView: View {
         .navigationTitle("Log")
         .toolbar {
             ToolbarItem(placement: .automatic) {
-                Text("\(logStore.entries.count) satır")
+                Text("\(logStore.entries.count) lines")
                     .foregroundStyle(.secondary)
             }
         }
@@ -378,23 +378,23 @@ struct TestAppView: View {
 
     private func connectToTV() async {
         guard let portValue = UInt16(port) else {
-            connectionPhase = .failed("Geçersiz port")
-            status = "Geçersiz port"
+            connectionPhase = .failed("Invalid port")
+            status = "Invalid port"
             return
         }
 
         await disconnectFromTV()
         selectedTab = 1
         connectionPhase = .connecting
-        status = "\(host):\(portValue) adresine bağlanılıyor…"
-        ADBLog.info("TV bağlantısı başlatıldı: \(host):\(portValue)", category: "TestApp")
+        status = "Connecting to \(host):\(portValue)…"
+        ADBLog.info("TV connection started: \(host):\(portValue)", category: "TestApp")
 
         #if os(iOS)
         await localNetwork.refresh()
         if localNetwork.status == .denied {
-            connectionPhase = .failed("Yerel ağ izni reddedildi")
-            status = "Ayarlar → Yerel Ağ → SwiftADB Test'i açın"
-            ADBLog.error("Yerel ağ izni yok — TV'ye ulaşılamaz", category: "TestApp")
+            connectionPhase = .failed("Local network permission denied")
+            status = "Open Settings → Local Network → SwiftADB Test"
+            ADBLog.error("Local network permission missing — cannot reach TV", category: "TestApp")
             return
         }
         #endif
@@ -408,18 +408,18 @@ struct TestAppView: View {
 
             let model = client.device?.model ?? client.device?.serial ?? host
             connectionPhase = .connected(model)
-            status = "TV'ye bağlandı"
-            ADBLog.info("TV bağlantısı başarılı: \(model)", category: "TestApp")
+            status = "Connected to TV"
+            ADBLog.info("TV connection succeeded: \(model)", category: "TestApp")
         } catch {
             let message = String(describing: error)
-            if message.contains("awaitingTVApproval") || message.contains("TV ekranında") {
-                connectionPhase = .failed("TV onayı zaman aşımı — tekrar deneyin")
-                status = "TV'de izin verin ve yeniden bağlanın"
+            if message.contains("awaitingTVApproval") || message.contains("TV screen") {
+                connectionPhase = .failed("TV approval timed out — try again")
+                status = "Approve on the TV and reconnect"
             } else {
                 connectionPhase = .failed(message)
-                status = "Bağlantı hatası"
+                status = "Connection error"
             }
-            ADBLog.error("TV bağlantısı başarısız: \(message)", category: "TestApp")
+            ADBLog.error("TV connection failed: \(message)", category: "TestApp")
             await client.disconnect()
         }
     }
@@ -428,13 +428,13 @@ struct TestAppView: View {
         await client.disconnect()
         connectionPhase = .idle
         if !isRunningTests {
-            status = "Bağlantı kesildi"
+            status = "Disconnected"
         }
     }
 
     private func runTests() async {
         guard let portValue = UInt16(port) else {
-            status = "Geçersiz port"
+            status = "Invalid port"
             return
         }
 
@@ -449,8 +449,8 @@ struct TestAppView: View {
             }
         }
 
-        status = "Testler çalışıyor…"
-        ADBLog.info("Testler başlatıldı", category: "TestApp")
+        status = "Running tests…"
+        ADBLog.info("Tests started", category: "TestApp")
 
         let output = await DeviceTestRunner.runAll(
             host: host,
@@ -466,9 +466,9 @@ struct TestAppView: View {
 
         let passed = output.filter(\.passed).count
         if passed == output.count {
-            status = "Tüm testler başarılı (\(passed)/\(output.count))"
+            status = "All tests passed (\(passed)/\(output.count))"
         } else {
-            status = "Bazı testler başarısız (\(passed)/\(output.count))"
+            status = "Some tests failed (\(passed)/\(output.count))"
         }
         isRunningTests = false
     }

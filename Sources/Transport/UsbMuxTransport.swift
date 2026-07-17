@@ -3,7 +3,7 @@ import Foundation
 import Darwin
 #endif
 
-/// USB üzerinden bağlı Android cihazı.
+/// Android device connected over USB.
 public struct UsbDevice: Sendable, Identifiable, Equatable {
     public let id: Int
     public let serial: String
@@ -27,7 +27,7 @@ public enum UsbMuxError: Error, Sendable {
 
 #if os(macOS)
 
-/// usbmuxd üzerinden USB ADB bağlantısı (macOS).
+/// USB ADB connection via usbmuxd (macOS).
 public final class UsbMuxTransport: ADBTransport, @unchecked Sendable {
     public let host: String
     public let port: UInt16
@@ -49,7 +49,7 @@ public final class UsbMuxTransport: ADBTransport, @unchecked Sendable {
     public func connect() async throws {
         socketFD = try UsbMuxClient.shared.connect(deviceID: deviceID, port: port)
         connected = true
-        ADBLog.info("USB bağlantısı kuruldu: device=\(deviceID) port=\(port)", category: "UsbMux")
+        ADBLog.info("USB connection established: device=\(deviceID) port=\(port)", category: "UsbMux")
     }
 
     public func disconnect() async {
@@ -122,7 +122,7 @@ public final class UsbMuxTransport: ADBTransport, @unchecked Sendable {
     }
 }
 
-/// usbmuxd istemcisi — cihaz listeleme ve port tüneli.
+/// usbmuxd client — device listing and port tunnel.
 public final class UsbMuxClient: @unchecked Sendable {
     public static let shared = UsbMuxClient()
 
@@ -149,7 +149,7 @@ public final class UsbMuxClient: @unchecked Sendable {
         let response = try receivePlist(fd: fd)
         guard UsbMuxPlist.isSuccess(response) else {
             close(fd)
-            throw UsbMuxError.requestFailed("Connect başarısız")
+            throw UsbMuxError.requestFailed("Connect failed")
         }
         return fd
     }
@@ -189,7 +189,7 @@ public final class UsbMuxClient: @unchecked Sendable {
             var sent = 0
             while sent < buffer.count {
                 let n = Darwin.write(fd, buffer.baseAddress!.advanced(by: sent), buffer.count - sent)
-                if n <= 0 { throw UsbMuxError.requestFailed("Yazma hatası") }
+                if n <= 0 { throw UsbMuxError.requestFailed("Write error") }
                 sent += n
             }
         }
@@ -201,7 +201,7 @@ public final class UsbMuxClient: @unchecked Sendable {
             var received = 0
             while received < 16 {
                 let n = Darwin.read(fd, ptr.baseAddress!.advanced(by: received), 16 - received)
-                if n <= 0 { throw UsbMuxError.requestFailed("Okuma hatası") }
+                if n <= 0 { throw UsbMuxError.requestFailed("Read error") }
                 received += n
             }
         }
@@ -214,13 +214,13 @@ public final class UsbMuxClient: @unchecked Sendable {
                 var received = 0
                 while received < readCount {
                     let n = Darwin.read(fd, ptr.baseAddress!.advanced(by: received), readCount - received)
-                    if n <= 0 { throw UsbMuxError.requestFailed("Okuma hatası") }
+                    if n <= 0 { throw UsbMuxError.requestFailed("Read error") }
                     received += n
                 }
             }
         }
         guard let plist = try PropertyListSerialization.propertyList(from: body, format: nil) as? [String: Any] else {
-            throw UsbMuxError.requestFailed("Geçersiz plist")
+            throw UsbMuxError.requestFailed("Invalid plist")
         }
         return plist
     }

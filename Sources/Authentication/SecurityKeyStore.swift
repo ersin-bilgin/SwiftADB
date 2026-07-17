@@ -3,7 +3,7 @@ import Foundation
 import Security
 import SwiftADBTransport
 
-/// RSA anahtar çifti yönetimi.
+/// RSA key pair management.
 public protocol ADBKeyStore: Sendable {
     var identifier: String { get }
     func loadOrGenerateKeyPair() throws -> SecKey
@@ -34,20 +34,20 @@ public enum KeyStoreError: Error, Sendable, CustomStringConvertible {
     public var description: String {
         switch self {
         case .keyGenerationFailed:
-            return "ADB RSA anahtarı oluşturulamadı"
+            return "Failed to generate ADB RSA key"
         case .signingFailed:
-            return "ADB kimlik doğrulama imzası oluşturulamadı"
+            return "Failed to create ADB authentication signature"
         case .exportFailed:
-            return "ADB anahtarı dışa aktarılamadı"
+            return "Failed to export ADB key"
         case .keyImportFailed(let detail):
-            return "ADB anahtarı içe aktarılamadı: \(detail)"
+            return "Failed to import ADB key: \(detail)"
         case .identityCreationFailed:
-            return "TLS kimlik sertifikası oluşturulamadı"
+            return "Failed to create TLS identity certificate"
         }
     }
 }
 
-/// Dosya tabanlı ADB anahtar deposu.
+/// File-based ADB key store.
 /// - macOS: `~/.android/adbkey`
 /// - iOS/iPadOS: `Application Support/SwiftADB/`
 public final class FileKeyStore: ADBKeyStore, @unchecked Sendable {
@@ -108,8 +108,8 @@ public final class FileKeyStore: ADBKeyStore, @unchecked Sendable {
                 return key
             }
             throw KeyStoreError.keyImportFailed(
-                "Geçersiz anahtar dosyası: \(privateKeyURL.path). " +
-                "`adb keygen` ile yeniden oluşturmayı deneyin."
+                "Invalid key file: \(privateKeyURL.path). " +
+                "Try regenerating with `adb keygen`."
             )
         }
 
@@ -126,7 +126,7 @@ public final class FileKeyStore: ADBKeyStore, @unchecked Sendable {
                 return key
             }
             throw KeyStoreError.keyImportFailed(
-                "Geçersiz anahtar dosyası: \(privateKeyURL.path)"
+                "Invalid key file: \(privateKeyURL.path)"
             )
         }
 
@@ -150,7 +150,7 @@ public final class FileKeyStore: ADBKeyStore, @unchecked Sendable {
             throw KeyStoreError.signingFailed
         }
 
-        // ADB istemcisi RSA_sign(NID_sha1, token, …) kullanır; adbd RSA_verify ile doğrular.
+        // ADB client uses RSA_sign(NID_sha1, token, …); adbd verifies with RSA_verify.
         var error: Unmanaged<CFError>?
         guard let signature = SecKeyCreateSignature(
             privateKey,
@@ -387,7 +387,7 @@ public final class FileKeyStore: ADBKeyStore, @unchecked Sendable {
         return sequence
     }
 
-    /// ADB `RSA_private_encrypt` ile uyumlu PKCS#1 v1.5 type-1 padding.
+    /// PKCS#1 v1.5 type-1 padding compatible with ADB `RSA_private_encrypt`.
     private func pkcs1PadForADBPrivateEncrypt(token: Data, key: SecKey) throws -> Data {
         let blockSize = SecKeyGetBlockSize(key)
         guard blockSize > token.count + 3 else {
@@ -485,7 +485,7 @@ public final class FileKeyStore: ADBKeyStore, @unchecked Sendable {
         notBefore: Date,
         notAfter: Date
     ) throws -> Data {
-        // Self-signed sertifika için basit DER oluşturucu
+        // Simple DER builder for self-signed certificate
         let spki = wrapRSAPublicKey(publicKeyData)
         let validity = encodeValidity(notBefore: notBefore, notAfter: notAfter)
         let tbs = encodeSequence(
@@ -640,7 +640,7 @@ public final class FileKeyStore: ADBKeyStore, @unchecked Sendable {
         ]
         let status = SecItemAdd(attributes as CFDictionary, nil)
         guard status == errSecSuccess || status == errSecDuplicateItem else {
-            throw KeyStoreError.keyImportFailed("Keychain kaydı başarısız: \(status)")
+            throw KeyStoreError.keyImportFailed("Keychain save failed: \(status)")
         }
     }
 
@@ -649,14 +649,14 @@ public final class FileKeyStore: ADBKeyStore, @unchecked Sendable {
         try? FileManager.default.removeItem(at: publicKeyURL)
     }
 
-    /// iOS/iPadOS: Mac `adbkey` dosyasını içe aktarır (TV Kumandası ile aynı anahtar).
+    /// iOS/iPadOS: imports Mac `adbkey` file (same key as TV Remote).
     public func replaceStoredKey(withPrivateKeyFile source: URL) throws {
         lock.lock()
         defer { lock.unlock() }
 
         let pem = try Data(contentsOf: source)
         guard let key = try importPrivateKey(fromPEM: pem) else {
-            throw KeyStoreError.keyImportFailed("Seçilen dosya geçerli bir ADB private key değil")
+            throw KeyStoreError.keyImportFailed("Selected file is not a valid ADB private key")
         }
 
         cachedKey = nil
@@ -684,22 +684,22 @@ public final class FileKeyStore: ADBKeyStore, @unchecked Sendable {
     public func keySourceSummary() -> String {
         #if os(macOS)
         if FileManager.default.fileExists(atPath: privateKeyURL.path) {
-            return "Mac ~/.android/adbkey (adb / TV Kumandası ile aynı)"
+            return "Mac ~/.android/adbkey (same as adb / TV Remote)"
         }
-        return "Mac — yeni anahtar oluşturulacak"
+        return "Mac — new key will be generated"
         #else
         if FileManager.default.fileExists(atPath: privateKeyURL.path) {
-            return "İçe aktarılmış adbkey dosyası"
+            return "Imported adbkey file"
         }
         if loadKeyFromKeychain() != nil {
-            return "iOS Keychain (adb@iOS) — ilk bağlantıda TV onayı gerekir"
+            return "iOS Keychain (adb@iOS) — TV approval required on first connection"
         }
-        return "Otomatik oluşturulacak — TV ekranında onay beklenir"
+        return "Will be generated automatically — approval expected on TV screen"
         #endif
     }
 }
 
-/// Bellek içi anahtar deposu (testler için).
+/// In-memory key store (for tests).
 public final class InMemoryKeyStore: ADBKeyStore, @unchecked Sendable {
     public let identifier: String
     private let backing = FileKeyStore(

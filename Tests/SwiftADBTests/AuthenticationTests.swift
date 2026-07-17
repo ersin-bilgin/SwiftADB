@@ -12,7 +12,7 @@ import Testing
 
     let privateKey = try keyStore.loadOrGenerateKeyPair()
     guard let publicKey = SecKeyCopyPublicKey(privateKey) else {
-        Issue.record("Public key alınamadı")
+        Issue.record("Could not retrieve public key")
         return
     }
 

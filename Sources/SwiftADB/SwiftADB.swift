@@ -8,7 +8,7 @@
 @_exported import SwiftADBShell
 @_exported import SwiftADBTransport
 
-/// SwiftADB kütüphanesi sürüm bilgisi.
+/// SwiftADB library version information.
 public enum SwiftADBVersion {
     public static let current = "0.2.0"
 }

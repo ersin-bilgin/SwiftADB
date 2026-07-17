@@ -2,7 +2,7 @@ import Foundation
 import Network
 
 #if os(iOS)
-/// iOS 14+ yerel ağ iznini tetikler. TV'ye TCP bağlantısı için zorunludur.
+/// Triggers iOS 14+ local network permission. Required for TCP connections to a TV.
 @MainActor
 public final class LocalNetworkPermission: ObservableObject {
     public enum Status: Equatable, Sendable {
@@ -13,10 +13,10 @@ public final class LocalNetworkPermission: ObservableObject {
 
         public var label: String {
             switch self {
-            case .unknown: return "Kontrol edilmedi"
-            case .checking: return "Yerel ağ izni kontrol ediliyor…"
-            case .granted: return "Yerel ağ izni verildi"
-            case .denied: return "Yerel ağ izni reddedildi"
+            case .unknown: return "Not checked"
+            case .checking: return "Checking local network permission…"
+            case .granted: return "Local network permission granted"
+            case .denied: return "Local network permission denied"
             }
         }
     }
@@ -24,9 +24,9 @@ public final class LocalNetworkPermission: ObservableObject {
     @Published public private(set) var status: Status = .unknown
 
     public static let settingsHint = """
-    iPhone Ayarlar → Gizlilik ve Güvenlik → Yerel Ağ → SwiftADB Test → Açık
+    iPhone Settings → Privacy & Security → Local Network → SwiftADB Test → On
 
-    TV'ye Wi‑Fi üzerinden bağlanmak için bu izin zorunludur.
+    This permission is required to connect to a TV over Wi‑Fi.
     """
 
     public init() {}

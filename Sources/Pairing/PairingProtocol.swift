@@ -39,20 +39,20 @@ struct PairingPacketHeader {
 
     static func decode(from data: Data) throws -> PairingPacketHeader {
         guard data.count >= PairingConstants.headerSize else {
-            throw PairingError.pairingFailed("Geçersiz pairing başlığı")
+            throw PairingError.pairingFailed("Invalid pairing header")
         }
         let version = data[0]
         guard version == PairingConstants.headerVersion else {
-            throw PairingError.pairingFailed("Desteklenmeyen pairing sürümü")
+            throw PairingError.pairingFailed("Unsupported pairing version")
         }
         guard let type = PairingPacketType(rawValue: data[1]) else {
-            throw PairingError.pairingFailed("Geçersiz pairing paket türü")
+            throw PairingError.pairingFailed("Invalid pairing packet type")
         }
         let payloadSize = data.subdata(in: 2..<6).withUnsafeBytes {
             $0.load(as: UInt32.self).bigEndian
         }
         guard payloadSize > 0, payloadSize <= PairingConstants.maxPayloadSize else {
-            throw PairingError.pairingFailed("Geçersiz payload boyutu")
+            throw PairingError.pairingFailed("Invalid payload size")
         }
         return PairingPacketHeader(type: type, payloadSize: payloadSize, version: version)
     }
@@ -76,16 +76,16 @@ struct PeerInfo {
 
     static func decode(from data: Data) throws -> PeerInfo {
         guard data.count == PairingConstants.maxPeerInfoSize else {
-            throw PairingError.pairingFailed("Geçersiz PeerInfo boyutu")
+            throw PairingError.pairingFailed("Invalid PeerInfo size")
         }
         guard let type = InfoType(rawValue: data[0]) else {
-            throw PairingError.pairingFailed("Geçersiz PeerInfo türü")
+            throw PairingError.pairingFailed("Invalid PeerInfo type")
         }
         return PeerInfo(type: type, data: Data(data.dropFirst()))
     }
 }
 
-/// AES-128-GCM şifreleme (pairing PeerInfo için).
+/// AES-128-GCM encryption (for pairing PeerInfo).
 enum PairingCipher {
     static func encrypt(keyMaterial: Data, plaintext: Data) throws -> Data {
         let key = SymmetricKey(data: keyMaterial.prefix(16))
@@ -99,7 +99,7 @@ enum PairingCipher {
 
     static func decrypt(keyMaterial: Data, ciphertext: Data) throws -> Data {
         guard ciphertext.count > 28 else {
-            throw PairingError.pairingFailed("Geçersiz şifreli veri")
+            throw PairingError.pairingFailed("Invalid encrypted data")
         }
         let nonceData = ciphertext.prefix(12)
         let tag = ciphertext.suffix(16)
@@ -111,7 +111,7 @@ enum PairingCipher {
     }
 }
 
-/// SPAKE2 anahtar türetme (BoringSSL uyumlu basitleştirilmiş PAKE).
+/// SPAKE2 key derivation (BoringSSL-compatible simplified PAKE).
 enum PairingAuthContext {
     static func deriveKeyMaterial(password: Data, ourMsg: Data, theirMsg: Data, isClient: Bool) -> Data {
         var input = Data()

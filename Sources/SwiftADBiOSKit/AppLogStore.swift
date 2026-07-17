@@ -1,7 +1,7 @@
 import Foundation
 import SwiftADB
 
-/// Uygulama içi ADB log paneli için paylaşılan log deposu.
+/// Shared log store for the in-app ADB log panel.
 @MainActor
 public final class AppLogStore: ObservableObject {
     public static let shared = AppLogStore()

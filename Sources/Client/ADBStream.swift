@@ -1,7 +1,7 @@
 import Foundation
 import SwiftADBTransport
 
-/// Açık bir ADB servis akışı.
+/// An open ADB service stream.
 public actor ADBStream {
     public let localID: UInt32
     public private(set) var remoteID: UInt32?
@@ -82,7 +82,7 @@ public actor ADBStream {
             }
         }
         if result.isEmpty && !closed && Date() >= deadline {
-            throw ADBClientError.connectionFailed("Akış okuma zaman aşımı")
+            throw ADBClientError.connectionFailed("Stream read timed out")
         }
         return result
     }

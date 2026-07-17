@@ -2,7 +2,7 @@ import Foundation
 import SwiftADBClient
 import SwiftADBShell
 
-/// Logcat kayıt seviyesi.
+/// Logcat record level.
 public enum LogcatPriority: String, Sendable, CaseIterable {
     case verbose = "V"
     case debug = "D"
@@ -16,7 +16,7 @@ public enum LogcatPriority: String, Sendable, CaseIterable {
     }
 }
 
-/// Tek bir logcat satırı.
+/// A single logcat line.
 public struct LogcatEntry: Sendable, Identifiable {
     public let id: UUID
     public let timestamp: Date
@@ -42,7 +42,7 @@ public struct LogcatEntry: Sendable, Identifiable {
     }
 }
 
-/// Logcat filtre seçenekleri.
+/// Logcat filter options.
 public struct LogcatFilter: Sendable {
     public var tag: String?
     public var priority: LogcatPriority?
@@ -67,7 +67,7 @@ public enum LogcatError: Error, Sendable {
     case streamFailed(String)
 }
 
-/// ADB logcat servisi.
+/// ADB logcat service.
 public protocol ADBLogcatService: Sendable {
     func stream(filter: LogcatFilter?) async throws -> AsyncStream<LogcatEntry>
     func clear() async throws

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Tip silinmiş ADB transport sarmalayıcısı.
+/// Type-erased ADB transport wrapper.
 public final class TransportBox: @unchecked Sendable {
     public let transport: any ADBTransport
 

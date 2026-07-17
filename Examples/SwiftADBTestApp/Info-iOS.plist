@@ -24,7 +24,7 @@
 		<string>_adb-tls-pairing._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>ADB cihazlarını keşfetmek ve bağlanmak için yerel ağ erişimi gerekir.</string>
+	<string>Local network access is required to discover and connect to ADB devices.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

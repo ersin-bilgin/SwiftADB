@@ -1,7 +1,7 @@
 import Foundation
 import Network
 
-/// Network.framework tabanlı async TCP bağlantısı.
+/// Async TCP connection based on Network.framework.
 final class AsyncTCPConnection: @unchecked Sendable {
     enum State {
         case disconnected

@@ -4,14 +4,14 @@ import SwiftADBDeviceDiscovery
 import SwiftADBPairing
 import SwiftADBTransport
 
-/// Bağlantı türü.
+/// Connection type.
 public enum ADBConnectionType: Sendable {
     case tcp(host: String, port: UInt16)
     case usb(deviceID: Int, port: UInt16)
     case custom(any ADBTransport)
 }
 
-/// Bağlı ADB cihazı.
+/// Connected ADB device.
 public struct ADBDevice: Sendable, Identifiable {
     public let id: String
     public let serial: String
@@ -46,7 +46,7 @@ public enum ADBClientError: Error, Sendable {
     case serviceUnavailable(String)
 }
 
-/// Ana ADB istemci.
+/// Main ADB client.
 public final class ADBClient: @unchecked Sendable {
     private let keyStore: any ADBKeyStore
     private let authenticator: any ADBAuthenticator
@@ -83,7 +83,7 @@ public final class ADBClient: @unchecked Sendable {
         #if os(macOS)
         try await connect(type: .usb(deviceID: deviceID, port: port))
         #else
-        throw ADBClientError.connectionFailed("USB ADB yalnızca macOS'ta desteklenir")
+        throw ADBClientError.connectionFailed("USB ADB is only supported on macOS")
         #endif
     }
 
@@ -107,7 +107,7 @@ public final class ADBClient: @unchecked Sendable {
             host = "usb:\(deviceID)"
             port = p
             #else
-            throw ADBClientError.connectionFailed("USB ADB yalnızca macOS'ta desteklenir")
+            throw ADBClientError.connectionFailed("USB ADB is only supported on macOS")
             #endif
         case .custom(let custom):
             transport = custom

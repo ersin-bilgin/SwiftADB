@@ -27,18 +27,18 @@ enum DeviceTestRunner {
         }
 
         if ownsClient {
-            await append(await measure("Bağlantı") {
+            await append(await measure("Connection") {
                 try await client.connect(host: host, port: port)
                 guard client.device != nil else {
-                    throw TestFailure("Cihaz bilgisi alınamadı")
+                    throw TestFailure("Could not retrieve device info")
                 }
                 return client.device?.serial ?? host
             })
         } else {
             await append(DeviceTestResult(
-                name: "Bağlantı",
+                name: "Connection",
                 passed: client.device != nil,
-                detail: client.device?.model ?? client.device?.serial ?? "Mevcut oturum",
+                detail: client.device?.model ?? client.device?.serial ?? "Existing session",
                 duration: 0
             ))
         }
@@ -52,7 +52,7 @@ enum DeviceTestRunner {
             let shell = DefaultShellService(client: client)
             let output = try await shell.execute("getprop ro.product.model")
             let model = output.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !model.isEmpty else { throw TestFailure("Boş model çıktısı") }
+            guard !model.isEmpty else { throw TestFailure("Empty model output") }
             return model
         })
 
@@ -60,7 +60,7 @@ enum DeviceTestRunner {
             let shell = DefaultShellService(client: client)
             let output = try await shell.execute("echo swiftadb-test")
             guard output.stdout.contains("swiftadb-test") else {
-                throw TestFailure("Echo çıktısı beklenen değil: \(output.stdout)")
+                throw TestFailure("Unexpected echo output: \(output.stdout)")
             }
             return "exit \(output.exitCode)"
         })
@@ -73,7 +73,7 @@ enum DeviceTestRunner {
 
         await append(await measure("Banner") {
             guard let banner = client.device?.banner, !banner.isEmpty else {
-                throw TestFailure("Banner yok")
+                throw TestFailure("No banner")
             }
             return banner
         })
@@ -82,9 +82,9 @@ enum DeviceTestRunner {
             await client.disconnect()
         }
         await append(DeviceTestResult(
-            name: "Bağlantı kesme",
+            name: "Disconnect",
             passed: true,
-            detail: ownsClient ? "Oturum kapatıldı" : "Oturum açık bırakıldı",
+            detail: ownsClient ? "Session closed" : "Session left open",
             duration: 0
         ))
         return results
